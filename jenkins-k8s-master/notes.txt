@@ -1,0 +1,120 @@
+######################################
+######jenkins-distributed-k8s ########
+######################################
+1.
+gcloud compute networks create gke-jenkins
+###
+gcloud compute networks delete gke-jenkins
+
+2.
+gcloud compute firewall-rules create k8s-jenkins --allow tcp:32000 --network gke-jenkins --source-ranges 0.0.0.0/0
+
+
+###
+gcloud compute firewall-rules delete k8s-jenkins
+
+
+
+
+
+3.
+gcloud container clusters create jenkins-cluster --num-nodes=1 --zone=us-central1-a --network=gke-jenkins --machine-type=e2-standard-8 --tags=gke-jenkins
+gcloud container clusters get-credentials jenkins-cluster --zone=us-central1-a # saves in ~/.kube/config
+###
+gcloud container clusters delete jenkins-cluster --zone=us-central1-a 
+
+4.
+#create new namespace
+kubectl create namespace devops-tools
+kubectl config set-context --current --namespace=devops-tools
+
+######auth by GCP SA#####
+kubectl create secret generic gcp-sa --from-file=/home/pulan/Downloads/gcp101730-pulanowskisandbox-fbb4c9891f41.json
+kubectl create secret generic gcp-ssh --from-file=./keys/gcp_ssh
+kubectl create secret generic gcp-kh --from-file=./keys/known_hosts
+
+
+#create sa manifest in cluster
+kubectl apply -f k8s/service-account.yaml
+#below checks if service account has permmisions to get pods in devops-tools namespace
+kubectl auth can-i get pods --as=system:serviceaccount:devops-tools:jenkins-admin -n devops-tools
+kubectl auth can-i get secrets --as=system:serviceaccount:devops-tools:jenkins-admin -n devops-tools
+
+
+#create deployment
+kubectl apply -f k8s/deployment.yaml
+
+#check ip
+kubectl get nodes -o wide
+
+#in jenkins
+#Plugins
+Kubernetes
+Kubernetes CLI
+Kubernetes Credentials Provider
+Kubernetes :: Pipeline :: DevOps Steps
+Pipeline
+*Safe Restart
+Google OAuth Credentials
+Google Kubernetes Engine #for 'withGoogleServiceAccountCredentials'
+
+#Cloud config
+Manage Nodes & Clouds -> Configure Clouds -> Kubernetes -> fill:
+    #K8s Namespace
+devops-tools
+    #Jenkins URL
+http://<service-name>.<namespace>.svc.cluster.local:8080
+http://jenkins-service.devops-tools.svc.cluster.local:8080
+    #Pod Label
+Key: jenkins
+Value: agent
+
+#Pod Template
+Name: kube-agent
+Namespace: devops-tools
+Labels: kubeagent
+    #Containers e.g.
+Name: jnlp
+Docker image: jenkins/inbound-agent:4.3-4
+Working directory: /home/jenkins/agent
+
+
+
+#using kaniko for container build
+https://devopscube.com/jenkins-build-agents-kubernetes/
+https://devopscube.com/build-docker-image-kubernetes-pod/
+https://github.com/GoogleContainerTools/kaniko#pushing-to-google-gcr
+
+
+1. prep kaniko container with GCP SA included in correct folder!
+
+kubectl logs jenkins-deployment-86f6dd55f9-bcfqw -c jnlp -n devops-tools
+kubectl get role -n devops-tools
+kubectl get rolebinding -n devops-tools
+kubectl describe rolebinding jenkins-role-binding -n devops-tools
+
+
+SA setup:
+
+sa-jenkins@gcp101730-pulanowskisandbox.iam.gserviceaccount.com
+sa-jenkins
+__________
+Artifact Registry Writer
+Cloud Run Developer
+Cloud Run Service Agent
+Source Repository Reader
+
+#for terraform
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/keyfile.json
+
+TESTING
+    docker kill $(docker ps -q)
+    docker rm $(docker ps -aq) #remove containers
+    docker rmi -f $(docker images -a -q) #remove images
+    docker build --tag jenkinscac .
+    docker run -itd -p 8080:8080 jenkinscac
+
+
+
+jenkins_k8s_master 
+git remote add jenkins_k8s_master  ssh://pulan@softserveinc.com@source.developers.google.com:2022/p/gcp101730-pulanowskisandbox/r/jenkins-k8s-master

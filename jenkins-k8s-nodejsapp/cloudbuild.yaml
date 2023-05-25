@@ -1,0 +1,12 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '$_IMAGE_NAME:$_TAG', '-f', 'mentoring-jenkins-jaac-deploy/app/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['auth', 'configure-docker']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '$_IMAGE_NAME:$_TAG']
+  
+
+substitutions:
+  _IMAGE_NAME: nodeapp
+  _TAG: $SHORT_SHA

@@ -1,0 +1,27 @@
+jenkins:
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: pass
+        - id : DrugiZiomek
+          password: drugiziomek
+        - id: TrzeciZiomek
+          password: trzeciziomek
+
+  authorizationStrategy: loggedInUsersCanDoAnything
+
+  systemMessage: "Automating Jenkins Setup using Docker and Jenkins Configuration as Code\n\n Cool it works!!\n***************"
+
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        namespace: "devops-tools"
+        jenkinsUrl: "http://jenkins-service.devops-tools.svc.cluster.local:8080"
+        podLabels:
+          - key: "jenkins"
+            value: "agent"
+            
+

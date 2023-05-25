@@ -1,0 +1,51 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes-cloud"
+        serverUrl: "https://kubernetes.default.svc"
+        namespace: "jenkins"
+        credentialsId: "kubeconfig"
+        jenkinsUrl: "http://jenkins-ui:8080"
+        containerCap: 10
+        connectTimeout: 5
+        readTimeout: 15
+        pods:
+          - name: "pod-template"
+            volumes:
+              - secretVolume:
+                  secretName: "gcp-sa"
+                  mountPath: "/var/jenkins_home/gcpsa/"
+              - secretVolume:
+                  secretName: "gcp-ssh"
+                  mountPath: "/var/jenkins_home/gcpssh/"
+              - secretVolume:
+                  secretName: "gcp-kh"
+                  mountPath: "/var/jenkins_home/gcpkh/"
+            containers:
+              - name: "kaniko"
+                image: "gcr.io/kaniko-project/executor:debug"
+                command: "sleep"
+                args: "30d"
+                volumeMounts:
+                  - hostPathVolume:
+                      hostPath: "/var/jenkins_home/gcpsa"
+                      mountPath: "/var/jenkins_home/gcpsa"
+              - name: "git"
+                image: "alpine/git"
+                command: "sleep"
+                args: "30d"
+                volumeMounts:
+                  - hostPathVolume:
+                      hostPath: "/var/jenkins_home/gcpssh"
+                      mountPath: "/var/jenkins_home/gcpssh"
+                  - hostPathVolume:
+                      hostPath: "/var/jenkins_home/gcpkh"
+                      mountPath: "/var/jenkins_home/gcpkh"
+              - name: "gcloud"
+                image: "google/cloud-sdk:latest"
+                command: "sleep"
+                args: "30d"
+                volumeMounts:
+                  - hostPathVolume:
+                      hostPath: "/var/jenkins_home/gcpsa"
+                      mountPath: "/var/jenkins_home/gcpsa"

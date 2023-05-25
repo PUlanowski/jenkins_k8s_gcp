@@ -1,0 +1,3 @@
+jobs:
+  - name: k8s nodejsapp deploy
+    file: /usr/share/jenkins/jobs/k8s.groovy
